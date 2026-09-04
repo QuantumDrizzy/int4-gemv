@@ -38,8 +38,11 @@ measured the problem, fix it in silicon.
 ### Constraints
 
 - **One consumer GPU, 16 GB.** No multi-GPU, no NVLink, no datacenter part.
-- **sm_120 Blackwell, CUDA 13.0**, MSVC toolchain (vcvars64 + nvcc + Ninja; the
-  Visual Studio generator does not pick up the CUDA toolset on this machine).
+- **sm_120 Blackwell, nvcc 13.0.88**, MSVC toolchain (vcvars64 + nvcc + Ninja;
+  the Visual Studio generator does not pick up the CUDA toolset on this machine).
+  Note the version skew: the kernels compile against CUDA 13.0, while the PyTorch
+  used for baselines is a `2.12.0.dev+cu128` build. Both list sm_120; the skew is
+  recorded here so a later discrepancy is not mistaken for a kernel bug.
 - **Solo, evenings.** The scope must be finishable, not a serving stack.
 - Every number published carries its baseline and its limits.
 
@@ -212,10 +215,31 @@ whether an INT8 path is worth adding for comparison.
 
 ---
 
+## Verified before accepting this ADR
+
+The one assumption that could have invalidated the benchmark plan — that
+bitsandbytes has no working NF4 path on consumer Blackwell — **does not hold.
+Checked on the target device:**
+
+```
+torch 2.12.0.dev+cu128 · bitsandbytes 0.49.2
+NVIDIA GeForce RTX 5060 Ti · sm_120 · 36 SMs · 17.1 GB
+arch list includes sm_120
+
+quantize_nf4 on a 3584x3584 fp16 projection:
+  packed 6 422 528 B vs fp16 25 690 112 B          -> 4.00x, as specified
+  mean |dequant - original|            0.07279      (weights ~ N(0,1))
+  relative GEMV error vs fp16 weights  0.0902
+```
+
+Baseline 1 stands. The 9 % relative GEMV error is NF4 doing its job at 4 bits and
+is the accuracy this kernel must match, not beat.
+
+---
+
 ## Action items
 
-1. [ ] Confirm bitsandbytes runs NF4 on sm_120 with CUDA 13.0 — **do this first**;
-       it is the one assumption that can invalidate the benchmark plan.
+1. [x] ~~Confirm bitsandbytes runs NF4 on sm_120~~ — **done, see above.**
 2. [ ] Harness: shapes from Qwen2.5-Coder-7B (3584×3584, 3584×18944, 18944×3584,
        3584×512), FP32 CPU reference, CUDA-event timing, empty-launch floor.
 3. [ ] Option A baseline (dequant-then-cuBLAS) — the control for fusion.
