@@ -272,7 +272,14 @@ is the accuracy this kernel must match, not beat.
 4. [ ] Option B kernel: INT4 group-wise, warp-per-row, FP32 accumulate.
 5. [ ] Correctness gate against the FP32 reference before any timing is recorded.
 6. [ ] Option C kernel: split-K for rows < threshold; tolerance-based test.
-7. [ ] NF4 variant of Option B, for the like-for-like bitsandbytes comparison.
+7. [x] ~~NF4 variant, for the like-for-like comparison~~ — **done, and it cut the
+       result.** Against bitsandbytes in its own format (block 64, FP32 absmax,
+       canonical NormalFloat table, verified against its `quant_state`) the
+       kernel wins by **1.03–1.10× and loses `down_proj` at 0.98×**, not the
+       1.23–1.41× the INT4-vs-NF4 comparison showed. Holding the kernel constant
+       and changing only the format costs 19–31 %, so most of that 1.4× was the
+       format. The suspicion this action item was written to test turned out to
+       be correct, and the headline is revised down a second time.
 8. [ ] Nsight Compute profile: confirm the kernel is bandwidth-bound and report
        the achieved-vs-peak figure it gives.
 9. [ ] README with the bandwidth table, the roofline, and the known limits.

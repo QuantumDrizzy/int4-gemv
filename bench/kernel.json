@@ -1,12 +1,12 @@
 {
   "device": "NVIDIA GeForce RTX 5060 Ti sm_120 36 SMs",
   "shapes": [
-      {"name": "q_proj", "out_features": 3584, "in_features": 3584, "bytes": 6623232, "kernel_us": 22.592, "gbs": 293.17, "rel_max_err": 0.000187}
-    , {"name": "k_proj", "out_features": 512, "in_features": 3584, "bytes": 946176, "kernel_us": 6.400, "gbs": 147.84, "rel_max_err": 0.000200}
-    , {"name": "v_proj", "out_features": 512, "in_features": 3584, "bytes": 946176, "kernel_us": 6.368, "gbs": 148.58, "rel_max_err": 0.000200}
-    , {"name": "o_proj", "out_features": 3584, "in_features": 3584, "bytes": 6623232, "kernel_us": 22.688, "gbs": 291.93, "rel_max_err": 0.000187}
-    , {"name": "gate_proj", "out_features": 18944, "in_features": 3584, "bytes": 35008512, "kernel_us": 96.512, "gbs": 362.74, "rel_max_err": 0.000206}
-    , {"name": "up_proj", "out_features": 18944, "in_features": 3584, "bytes": 35008512, "kernel_us": 96.544, "gbs": 362.62, "rel_max_err": 0.000206}
-    , {"name": "down_proj", "out_features": 3584, "in_features": 18944, "bytes": 35008512, "kernel_us": 104.448, "gbs": 335.18, "rel_max_err": 0.000162}
+      {"name": "q_proj", "out_features": 3584, "in_features": 3584, "int4": {"bytes": 6623232, "kernel_us": 22.624, "gbs": 292.75, "rel_max_err": 0.000187}, "nf4": {"bytes": 7225344, "kernel_us": 26.848, "gbs": 269.12, "rel_max_err": 0.000181}}
+    , {"name": "k_proj", "out_features": 512, "in_features": 3584, "int4": {"bytes": 946176, "kernel_us": 6.368, "gbs": 148.58, "rel_max_err": 0.000200}, "nf4": {"bytes": 1032192, "kernel_us": 8.320, "gbs": 124.06, "rel_max_err": 0.000197}}
+    , {"name": "v_proj", "out_features": 512, "in_features": 3584, "int4": {"bytes": 946176, "kernel_us": 6.432, "gbs": 147.10, "rel_max_err": 0.000200}, "nf4": {"bytes": 1032192, "kernel_us": 8.320, "gbs": 124.06, "rel_max_err": 0.000197}}
+    , {"name": "o_proj", "out_features": 3584, "in_features": 3584, "int4": {"bytes": 6623232, "kernel_us": 22.624, "gbs": 292.75, "rel_max_err": 0.000187}, "nf4": {"bytes": 7225344, "kernel_us": 26.880, "gbs": 268.80, "rel_max_err": 0.000181}}
+    , {"name": "gate_proj", "out_features": 18944, "in_features": 3584, "int4": {"bytes": 35008512, "kernel_us": 96.576, "gbs": 362.50, "rel_max_err": 0.000206}, "nf4": {"bytes": 38191104, "kernel_us": 122.912, "gbs": 310.72, "rel_max_err": 0.000207}}
+    , {"name": "up_proj", "out_features": 18944, "in_features": 3584, "int4": {"bytes": 35008512, "kernel_us": 96.704, "gbs": 362.02, "rel_max_err": 0.000206}, "nf4": {"bytes": 38191104, "kernel_us": 122.944, "gbs": 310.64, "rel_max_err": 0.000207}}
+    , {"name": "down_proj", "out_features": 3584, "in_features": 18944, "int4": {"bytes": 35008512, "kernel_us": 104.512, "gbs": 334.97, "rel_max_err": 0.000162}, "nf4": {"bytes": 38191104, "kernel_us": 131.680, "gbs": 290.03, "rel_max_err": 0.000171}}
   ]
 }
