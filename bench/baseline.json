@@ -1,0 +1,99 @@
+{
+  "device": "NVIDIA GeForce RTX 5060 Ti sm_120 36 SMs",
+  "torch": "2.12.0.dev20260408+cu128",
+  "read_bandwidth_gbs": 425.9419864782131,
+  "empty_launch_us": 5.280000157654285,
+  "shapes": [
+    {
+      "name": "q_proj",
+      "out_features": 3584,
+      "in_features": 3584,
+      "packed_bytes": 6422528,
+      "scale_bytes": 802816,
+      "roofline_us": 16.96321149211144,
+      "fp16_us": 70.0799971818924,
+      "nf4_us": 29.120000079274178,
+      "control_a_us": 88.32000195980072,
+      "nf4_pct_of_roofline": 58.252786558832504,
+      "nf4_relative_error": 0.09053393453359604
+    },
+    {
+      "name": "k_proj",
+      "out_features": 512,
+      "in_features": 3584,
+      "packed_bytes": 917504,
+      "scale_bytes": 114688,
+      "roofline_us": 2.4233159274444915,
+      "fp16_us": 9.088000282645226,
+      "nf4_us": 8.54399986565113,
+      "control_a_us": 18.719999119639397,
+      "nf4_pct_of_roofline": 28.362780495664403,
+      "nf4_relative_error": 0.09194481372833252
+    },
+    {
+      "name": "v_proj",
+      "out_features": 512,
+      "in_features": 3584,
+      "packed_bytes": 917504,
+      "scale_bytes": 114688,
+      "roofline_us": 2.4233159274444915,
+      "fp16_us": 9.088000282645226,
+      "nf4_us": 8.608000352978706,
+      "control_a_us": 18.719999119639397,
+      "nf4_pct_of_roofline": 28.151903207182478,
+      "nf4_relative_error": 0.10223294049501419
+    },
+    {
+      "name": "o_proj",
+      "out_features": 3584,
+      "in_features": 3584,
+      "packed_bytes": 6422528,
+      "scale_bytes": 802816,
+      "roofline_us": 16.96321149211144,
+      "fp16_us": 70.0799971818924,
+      "nf4_us": 29.08799983561039,
+      "control_a_us": 88.28800171613693,
+      "nf4_pct_of_roofline": 58.316871520827554,
+      "nf4_relative_error": 0.09465650469064713
+    },
+    {
+      "name": "gate_proj",
+      "out_features": 18944,
+      "in_features": 3584,
+      "packed_bytes": 33947648,
+      "scale_bytes": 4243456,
+      "roofline_us": 89.66268931544619,
+      "fp16_us": 333.18400382995605,
+      "nf4_us": 135.71199774742126,
+      "control_a_us": 793.4079766273499,
+      "nf4_pct_of_roofline": 66.0683585855989,
+      "nf4_relative_error": 0.09127868711948395
+    },
+    {
+      "name": "up_proj",
+      "out_features": 18944,
+      "in_features": 3584,
+      "packed_bytes": 33947648,
+      "scale_bytes": 4243456,
+      "roofline_us": 89.66268931544619,
+      "fp16_us": 333.15199613571167,
+      "nf4_us": 135.71199774742126,
+      "control_a_us": 794.0800189971924,
+      "nf4_pct_of_roofline": 66.0683585855989,
+      "nf4_relative_error": 0.09212402254343033
+    },
+    {
+      "name": "down_proj",
+      "out_features": 3584,
+      "in_features": 18944,
+      "packed_bytes": 33947648,
+      "scale_bytes": 4243456,
+      "roofline_us": 89.66268931544619,
+      "fp16_us": 329.8879861831665,
+      "nf4_us": 128.9920061826706,
+      "control_a_us": 787.3600125312805,
+      "nf4_pct_of_roofline": 69.5102680924827,
+      "nf4_relative_error": 0.0928206518292427
+    }
+  ]
+}

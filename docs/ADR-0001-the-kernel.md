@@ -21,19 +21,40 @@ at **39.88 GB/s**:
 | Quantity | Value |
 |---|---|
 | Qwen2.5-Coder-7B at 4 bits + scales | ~3.8 GB of weights per token |
-| Roofline at 384.95 GB/s | ~9.9 ms/token → **~101 tok/s** |
+| Roofline at ~426 GB/s | ~8.9 ms/token → **~112 tok/s** |
 | Measured decode, bitsandbytes NF4 | **6.5 tok/s** |
 | Fraction of roofline achieved | **~6 %** |
 
-A 15× gap on a kernel whose theoretical behaviour is completely understood. That
-gap is the subject of this repository.
+A 15× gap at the token level, on a path whose theoretical behaviour is completely
+understood. The [Unibit](https://github.com/QuantumDrizzy/unibit) cost study
+measured this decode path and attributed the gap to dequantisation arithmetic.
 
-The diagnosis already exists and is published: the
-[Unibit](https://github.com/QuantumDrizzy/unibit) cost study measured this decode
-path and concluded it is **dequantisation-bound, not bandwidth-bound** — the GPU
-is not waiting on memory, it is waiting on the arithmetic that turns 4-bit codes
-back into values. This repository is the other half of that sentence: having
-measured the problem, fix it in silicon.
+> ### ⚠ That attribution was wrong, and this repository's own harness disproved it
+>
+> Before writing any CUDA, `bench/baseline.py` measured the isolated GEMV on the
+> real projection shapes. **bitsandbytes' NF4 kernel already achieves 58–70 % of
+> the roofline** on the projections that dominate the parameter count:
+>
+> | shape | out × in | roofline | bnb NF4 | % of roofline |
+> |---|---:|---:|---:|---:|
+> | `q_proj` / `o_proj` | 3584×3584 | 17.0 µs | 29.1 µs | **58 %** |
+> | `gate_proj` / `up_proj` | 18944×3584 | 89.7 µs | 135.7 µs | **66 %** |
+> | `down_proj` | 3584×18944 | 89.7 µs | 129.0 µs | **70 %** |
+> | `k_proj` / `v_proj` | 512×3584 | 2.4 µs | 8.5 µs | 28 % |
+>
+> The dequant-GEMV kernel is **not** where the 15× goes. At most ~1.7× is
+> available here, and on the small GQA projections the measurement is dominated
+> by the 5.28 µs empty-launch floor rather than by the kernel at all.
+>
+> The token-level gap is therefore somewhere else — attention, the KV-cache, the
+> Python loop, per-layer framework dispatch. That is now an open question rather
+> than a settled diagnosis, and it is tracked as ADR-0002.
+
+The premise is corrected, not abandoned: a hand-written kernel that closes
+58 % → ~90 % on the dominant shape is still worth having, and writing one from
+scratch that matches a mature library is the demonstration this repository is
+for. But the honest headline is **1.5×, not 15×**, and it is stated here before
+any code exists so that no later result can be presented as more than it is.
 
 ### Constraints
 
@@ -240,9 +261,14 @@ is the accuracy this kernel must match, not beat.
 ## Action items
 
 1. [x] ~~Confirm bitsandbytes runs NF4 on sm_120~~ — **done, see above.**
-2. [ ] Harness: shapes from Qwen2.5-Coder-7B (3584×3584, 3584×18944, 18944×3584,
-       3584×512), FP32 CPU reference, CUDA-event timing, empty-launch floor.
-3. [ ] Option A baseline (dequant-then-cuBLAS) — the control for fusion.
+2. [x] ~~Harness~~ — `bench/baseline.py`. All seven Qwen2.5-Coder-7B projection
+       shapes, FP32 CPU reference as a correctness gate, CUDA-event timing,
+       measured bandwidth and empty-launch floor. Results in `bench/baseline.json`.
+       **It disproved the premise above; see the warning box.**
+3. [x] ~~Option A control (dequant-then-cuBLAS)~~ — **hypothesis held.** It loses
+       by 3.0× on 3584×3584 (88.3 µs vs 29.1 µs) and 5.8× on 18944×3584
+       (793.4 µs vs 135.7 µs). Fusion is worth 3–6×, which is the one part of the
+       original reasoning the measurement supports.
 4. [ ] Option B kernel: INT4 group-wise, warp-per-row, FP32 accumulate.
 5. [ ] Correctness gate against the FP32 reference before any timing is recorded.
 6. [ ] Option C kernel: split-K for rows < threshold; tolerance-based test.
