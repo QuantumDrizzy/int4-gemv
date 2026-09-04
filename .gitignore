@@ -5,3 +5,7 @@ __pycache__/
 .vscode/
 *.ncu-rep
 *.nsys-rep
+*.exe
+*.exp
+*.lib
+*.pdb
