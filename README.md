@@ -20,12 +20,12 @@ NormalFloat table, verified against its `quant_state`.
 ```
 shape            out x in   roofline    bnb NF4    our NF4    bnb %BW  our %BW   ratio
 q_proj          3584x3584      17.0u      29.1u      26.8u      58.3%    63.2%   1.08x
-k_proj           512x3584       2.4u       8.5u       8.3u      28.4%    29.1%   1.03x
-gate_proj      18944x3584      89.7u     135.7u     122.9u      66.1%    72.9%   1.10x
-down_proj      3584x18944      89.7u     129.0u     131.7u      69.5%    68.1%   0.98x  <- bnb wins
+k_proj           512x3584       2.4u       8.5u       8.3u      28.4%    29.2%   1.03x
+gate_proj      18944x3584      89.7u     135.7u     121.4u      66.1%    73.8%   1.12x
+down_proj      3584x18944      89.7u     129.0u     125.2u      69.5%    71.6%   1.03x
 ```
 
-**1.03–1.10×, and it loses on `down_proj`.** That is the number.
+**1.03–1.12×.** That is the number.
 
 ## The number it is not
 
@@ -83,6 +83,51 @@ No tensor cores, deliberately. At batch 1 `mma` needs M ≥ 8, so seven eighths 
 every tile would be padding — and this kernel is memory-bound, which is not a
 problem tensor cores solve. Recorded in the ADR so it does not get re-litigated.
 
+## Why down_proj was losing
+
+`down_proj` (3584×18944) and `gate_proj` (18944×3584) hold the same weights,
+transposed, and the kernel was slower on the first. Two candidates: fewer warps,
+or a larger `x` — 37 KB against 7 KB, re-read by every warp and not counted in the
+weight-only roofline. Both move together across the real shapes, so
+[`diag_aspect.cu`](src/diag_aspect.cu) holds one fixed at a time.
+
+```
+SWEEP 2 - warp count, x held at 7 KB          SWEEP 3 - x, warps held at 3584
+  warps     MW/ms                               x KB     MW/ms
+   1184     329.1                                7.0     479.0
+   2368     409.9                               14.0     520.3
+   4736     488.0                               28.0     544.1
+   9472     550.5                               37.0     516.9
+  18944     558.5                               56.0     516.5
+  37888     562.5                              112.0     518.5
+```
+
+**Warp count, decisively.** Sweep 2 climbs 1.7× and saturates near 9–19k warps;
+sweep 3 is flat from 14 KB onward. `x` residency — the hypothesis this README
+carried until it was tested — is not the cause. `down_proj` launches 3584 warps
+and sits well below the knee.
+
+The fix is more warps per row. Two ways were measured:
+
+- **Split-K** (ADR Option C): partition the reduction dimension, accumulate with
+  `atomicAdd`. Buys 1.14× over itself at 4 splits, then hands it back — `y` needs
+  a separate memset launch and every warp closes with a global atomic. Net gain
+  against the plain kernel: **0.7 %**. Implemented, measured, not used.
+- **Block per row**: the block's warps take strided slices and reduce through
+  shared memory; one warp writes `y[row]`. No memset, no atomics, deterministic.
+  At 2 warps per block: **131.5 → 125.2 µs**, which flips `down_proj` from 0.98×
+  to 1.03× against bitsandbytes.
+
+The dispatch rule is `out_features < 8192 && words_per_row >= 1024`. Both numbers
+are fitted to one GPU, and only `down_proj` satisfies them on this model —
+`q_proj` has the same row count but 448-word rows and gains nothing from being
+split. It is a measured heuristic, not a portable rule.
+
+**Neither helps `k_proj`.** ADR-0001 predicted split-K would be "the right answer
+for the narrow projections". It is not: at 512×3584 the kernel runs in 8.3 µs
+against a 5.28 µs empty-launch floor, so the bottleneck is dispatch, not
+occupancy — and split-K adds a launch.
+
 ## Where this came from, and where it went wrong
 
 [Unibit](https://github.com/QuantumDrizzy/unibit) measured decode at ~6 % of the
@@ -127,12 +172,11 @@ python bench/plot.py       # the figure
 
 ## Limits
 
-- One GPU, one architecture (sm_120). The split-K variant in the ADR, for shapes
-  too narrow to fill the device, is not implemented.
+- One GPU, one architecture (sm_120). Both dispatch thresholds are fitted to it.
 - Batch 1 only. This is decode; prefill is a different, compute-bound problem.
-- `down_proj` loses to bitsandbytes and is not yet understood. The reduction
-  dimension is 18944 there against 3584 elsewhere, so the per-row working set and
-  the tail behaviour differ — that is a hypothesis, not a diagnosis.
+- `k_proj` and `v_proj` are dispatch-bound and nothing here fixes that. Removing
+  the launch, by fusing the three QKV projections into one kernel, is the actual
+  answer and is not implemented.
 - Our NF4 packing is 8 codes per `uint32`; bitsandbytes packs 2 per byte. Same
   bytes moved and the same numerical format, but not a byte-identical layout.
 - No fused activation, no bias, no attention, no KV-cache. One kernel, not an

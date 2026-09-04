@@ -271,7 +271,22 @@ is the accuracy this kernel must match, not beat.
        original reasoning the measurement supports.
 4. [ ] Option B kernel: INT4 group-wise, warp-per-row, FP32 accumulate.
 5. [ ] Correctness gate against the FP32 reference before any timing is recorded.
-6. [ ] Option C kernel: split-K for rows < threshold; tolerance-based test.
+6. [x] ~~Option C: split-K~~ — **implemented, measured, and not used.** The
+       diagnosis first: `diag_aspect.cu` holds x fixed while varying warps and
+       vice versa, and the answer is warp count (329 → 563 MW/ms from 1184 to
+       37888 warps) not x residency (flat from 14 KB up). So the premise for
+       Option C was right. The implementation was not worth it: split-K buys
+       1.14× over itself at 4 splits on `down_proj` and gives it straight back to
+       the memset of `y` and the global atomics, netting 0.7 % against the plain
+       kernel. **Block-per-row** does the same job without either — the block's
+       warps take strided slices and reduce through shared memory — and wins
+       1.05 %, enough to flip `down_proj` from 0.98× to 1.03× against
+       bitsandbytes. Split-K stays in the tree as the measured negative.
+
+       Also wrong in this ADR: Option C was called "the right answer for the
+       narrow projections". It is not. `k_proj` runs in 8.3 µs against a 5.28 µs
+       launch floor, so it is dispatch-bound, and split-K adds a launch. Fusing
+       QKV into one kernel is the real fix and is not in scope here.
 7. [x] ~~NF4 variant, for the like-for-like comparison~~ — **done, and it cut the
        result.** Against bitsandbytes in its own format (block 64, FP32 absmax,
        canonical NormalFloat table, verified against its `quant_state`) the
