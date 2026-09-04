@@ -7,6 +7,10 @@ weights are never materialised in memory.
 Measured on an RTX 5060 Ti (sm_120 Blackwell, 36 SMs), on the seven real
 projection shapes of Qwen2.5-Coder-7B at batch 1.
 
+<p align="center">
+  <img src="docs/img/roofline.png" width="820">
+</p>
+
 ```
 shape            out x in   roofline    bnb NF4       ours    bnb %BW  ours %BW   ratio
 q_proj          3584x3584      15.5u      29.1u      22.6u      58.3%     68.8%   1.29x
