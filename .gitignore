@@ -1,0 +1,7 @@
+build*/
+target/
+__pycache__/
+*.pyc
+.vscode/
+*.ncu-rep
+*.nsys-rep
